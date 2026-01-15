@@ -1,0 +1,26 @@
+我当前目录下有一个 `mofang.py` 文件，其中包含一个完整的 `RubiksCube` 类。
+请帮我创建一个名为 `main.py` 的文件，使用 **FastAPI** 框架构建后端服务。
+
+需求如下：
+1. **初始化**：在启动时实例化一个 `RubiksCube` 对象。
+2. **CORS设置**：配置 `CORSMiddleware`，允许所有来源 (`allow_origins=["*"]`) 访问，以避免本地开发时的跨域问题。
+3. **API 接口**：
+    - `GET /state`: 返回当前魔方的状态字典（即 `cube.state`）。
+    - `POST /move`: 接收一个 JSON body，格式为 `{"move": "R"}`（或者 "U'", "F2" 等）。调用魔方类的 `move` 方法，并返回更新后的状态。
+    - `GET /reset`: 重置魔方并返回初始状态。
+4. **启动代码**：在文件末尾添加 `uvicorn` 的启动代码，使其监听 `localhost:8000`。
+
+
+
+
+请创建一个 `index.html` 文件，用于前端展示。
+
+需求如下：
+1. **库引入**：通过 CDN (unpkg 或 cdnjs) 引入 **Three.js** 和 **OrbitControls** (用于鼠标拖拽旋转视角)。
+2. **场景初始化**：
+    - 创建 Scene, PerspectiveCamera, WebGLRenderer。
+    - 设置渲染器背景色为深灰色。
+    - 添加环境光 (AmbientLight) 和定向光 (DirectionalLight)。
+3. **相机控制**：初始化 `OrbitControls`，允许用户用鼠标旋转查看场景。
+4. **渲染循环**：编写 `animate` 函数并使用 `requestAnimationFrame` 保持画面刷新。
+5. **测试物体**：在场景中心先简单放置一个白色的 `BoxGeometry` (大小 1x1x1)，确保场景能正常显示。

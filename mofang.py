@@ -24,10 +24,10 @@ class RubiksCube:
     _default_colors = {
         "U": "W",  # White
         "D": "Y",  # Yellow
-        "L": "O",  # Orange
-        "R": "R",  # Red
-        "F": "G",  # Green
-        "B": "B",  # Blue
+        "L": "G",  # Green
+        "R": "B",  # Blue
+        "F": "R",  # Red
+        "B": "O",  # Orange
     }
 
     def __init__(self) -> None:
