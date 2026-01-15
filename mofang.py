@@ -76,94 +76,143 @@ class RubiksCube:
     # 每个面相邻四条带的定义 (face -> list[ (adj_face, index_getter, index_setter) ])
     # 为简化，使用辅助函数在 _cycle_edges 内部一次性 hard-code 逻辑。
     def _cycle_edges(self, face: str, direction: int) -> None:
-        """按照给定面的旋转方向，对四条邻边 sticker 进行循环。"""
-        s = self.state  # shorthand
+        """按照 WCA 定义（从该面正对观察者看过去的顺时针）循环交换邻边。
 
-        def row(f: str, idx: int) -> List[str]:
-            return s[f][idx]
+        说明：
+        - 每次旋转某一面，除了该面 3x3 自身旋转外，还会影响与其相邻的 4 个面的 1 条边（行/列）。
+        - 这里把“受影响的 4 条边”抽取出来，按顺/逆时针做循环，再写回。
+        - 对于 B 面，由于观察方向与我们存储的面朝向相反，需要在映射时显式处理反转。
+        """
+        s = self.state
 
-        def col(f: str, idx: int) -> List[str]:
-            return [s[f][r][idx] for r in range(3)]
+        def get_row(f: str, r: int) -> List[str]:
+            return s[f][r][:]
 
-        def set_row(f: str, idx: int, vals: List[str]) -> None:
-            s[f][idx] = vals[:]  # copy
+        def set_row(f: str, r: int, vals: List[str]) -> None:
+            s[f][r] = vals[:]
 
-        def set_col(f: str, idx: int, vals: List[str]) -> None:
+        def get_col(f: str, c: int) -> List[str]:
+            return [s[f][r][c] for r in range(3)]
+
+        def set_col(f: str, c: int, vals: List[str]) -> None:
             for r in range(3):
-                s[f][r][idx] = vals[r]
+                s[f][r][c] = vals[r]
 
+        # 为避免“读一边写一边”导致串扰：先把 4 条边完整取出
         if face == "U":
-            strips = [row("B", 0)[::-1], col("R", 0), row("F", 0), col("L", 2)[::-1]]
-            # 顺时针视角: F->R->B->L
-            order = ["F", "R", "B", "L"]
-            data = [row("F", 0), col("R", 0), row("B", 0)[::-1], col("L", 2)[::-1]]
+            # 受影响边：F 顶行、R 顶行、B 顶行、L 顶行
+            # U 顺时针：L -> F -> R -> B -> L
+            a = get_row("F", 0)
+            b = get_row("R", 0)
+            c = get_row("B", 0)
+            d = get_row("L", 0)
             if direction == CW:
-                rot = data[-1:] + data[:-1]
+                set_row("F", 0, d)
+                set_row("R", 0, a)
+                set_row("B", 0, b)
+                set_row("L", 0, c)
             else:
-                rot = data[1:] + data[:1]
-            set_row("F", 0, rot[0])
-            set_col("R", 0, rot[1])
-            set_row("B", 0, rot[2][::-1])
-            set_col("L", 2, rot[3][::-1])
+                set_row("F", 0, b)
+                set_row("R", 0, c)
+                set_row("B", 0, d)
+                set_row("L", 0, a)
             return
+
         if face == "D":
-            data = [row("F", 2), col("R", 2), row("B", 2)[::-1], col("L", 0)[::-1]]
+            # 受影响边：F 底行、R 底行、B 底行、L 底行
+            # D 顺时针（从 D 面看）：L -> F -> R -> B -> L
+            a = get_row("F", 2)
+            b = get_row("R", 2)
+            c = get_row("B", 2)
+            d = get_row("L", 2)
             if direction == CW:
-                rot = data[-1:] + data[:-1]
+                set_row("F", 2, d)
+                set_row("R", 2, a)
+                set_row("B", 2, b)
+                set_row("L", 2, c)
             else:
-                rot = data[1:] + data[:1]
-            set_row("F", 2, rot[0])
-            set_col("R", 2, rot[1])
-            set_row("B", 2, rot[2][::-1])
-            set_col("L", 0, rot[3][::-1])
+                set_row("F", 2, b)
+                set_row("R", 2, c)
+                set_row("B", 2, d)
+                set_row("L", 2, a)
             return
-        if face == "F":
-            data = [row("U", 2), col("R", 0), row("D", 0)[::-1], col("L", 2)[::-1]]
-            if direction == CW:
-                rot = data[-1:] + data[:-1]
-            else:
-                rot = data[1:] + data[:1]
-            set_row("U", 2, rot[0])
-            set_col("R", 0, rot[1])
-            set_row("D", 0, rot[2][::-1])
-            set_col("L", 2, rot[3][::-1])
-            return
-        if face == "B":
-            # 注意背面方向，索引有镜像
-            data = [row("U", 0), col("L", 0), row("D", 2)[::-1], col("R", 2)[::-1]]
-            # 背面对观察者而言顺时针=实际逆向，因此 direction 取反
-            eff_dir = -direction
-            if eff_dir == CW:
-                rot = data[-1:] + data[:-1]
-            else:
-                rot = data[1:] + data[:1]
-            set_row("U", 0, rot[0])
-            set_col("L", 0, rot[1])
-            set_row("D", 2, rot[2][::-1])
-            set_col("R", 2, rot[3][::-1])
-            return
-        if face == "L":
-            data = [col("U", 0), row("F", 0), col("D", 0)[::-1], row("B", 2)]
-            if direction == CW:
-                rot = data[-1:] + data[:-1]
-            else:
-                rot = data[1:] + data[:1]
-            set_col("U", 0, rot[0])
-            set_row("F", 0, rot[1])
-            set_col("D", 0, rot[2][::-1])
-            set_row("B", 2, rot[3])
-            return
+
         if face == "R":
-            data = [col("U", 2), row("B", 0)[::-1], col("D", 2)[::-1], row("F", 2)]
+            # 受影响边：U 右列、F 右列、D 右列、B 左列（注意 B 需要反向）
+            # R 顺时针：U -> F -> D -> B -> U
+            a = get_col("U", 2)
+            b = get_col("F", 2)
+            c = get_col("D", 2)
+            d = get_col("B", 0)[::-1]
             if direction == CW:
-                rot = data[-1:] + data[:-1]
+                set_col("F", 2, a)
+                set_col("D", 2, b)
+                set_col("B", 0, c[::-1])
+                set_col("U", 2, d)
             else:
-                rot = data[1:] + data[:1]
-            set_col("U", 2, rot[0])
-            set_row("B", 0, rot[1][::-1])
-            set_col("D", 2, rot[2][::-1])
-            set_row("F", 2, rot[3])
+                set_col("F", 2, c)
+                set_col("D", 2, d)
+                set_col("B", 0, a[::-1])
+                set_col("U", 2, b)
             return
+
+        if face == "L":
+            # 受影响边：U 左列、F 左列、D 左列、B 右列（注意 B 需要反向）
+            # L 顺时针：U -> B -> D -> F -> U（等价写成 U<-F<-D<-B<-U 的反向）
+            a = get_col("U", 0)
+            b = get_col("F", 0)
+            c = get_col("D", 0)
+            d = get_col("B", 2)[::-1]
+            if direction == CW:
+                set_col("B", 2, a[::-1])
+                set_col("D", 0, d)
+                set_col("F", 0, c)
+                set_col("U", 0, b)
+            else:
+                set_col("B", 2, c[::-1])
+                set_col("D", 0, b)
+                set_col("F", 0, a)
+                set_col("U", 0, d)
+            return
+
+        if face == "F":
+            # 受影响边：U 底行、R 左列、D 顶行、L 右列（其中两处需要反向）
+            # F 顺时针：U -> R -> D -> L -> U
+            a = get_row("U", 2)
+            b = get_col("R", 0)
+            c = get_row("D", 0)
+            d = get_col("L", 2)
+            if direction == CW:
+                set_col("R", 0, a[::-1])
+                set_row("D", 0, b)
+                set_col("L", 2, c[::-1])
+                set_row("U", 2, d)
+            else:
+                set_col("R", 0, c)
+                set_row("D", 0, d[::-1])
+                set_col("L", 2, a)
+                set_row("U", 2, b[::-1])
+            return
+
+        if face == "B":
+            # 受影响边：U 顶行、L 左列、D 底行、R 右列（多处需要反向）
+            # B 顺时针（从 B 面看）：U -> L -> D -> R -> U
+            a = get_row("U", 0)
+            b = get_col("L", 0)
+            c = get_row("D", 2)
+            d = get_col("R", 2)
+            if direction == CW:
+                set_col("L", 0, a)
+                set_row("D", 2, b[::-1])
+                set_col("R", 2, c)
+                set_row("U", 0, d[::-1])
+            else:
+                set_col("L", 0, c[::-1])
+                set_row("D", 2, d)
+                set_col("R", 2, a[::-1])
+                set_row("U", 0, b)
+            return
+
         raise NotImplementedError
 
     # ------------------------------------------------------------------
@@ -248,6 +297,15 @@ class RubiksCube:
 # Demo
 # ----------------------------------------------------------------------
 if __name__ == "__main__":
+    # 最小自检：每个基本转动做 4 次应回到初始状态；X 后 X' 应复原
+    for f in ["U", "D", "L", "R", "F", "B"]:
+        c = RubiksCube()
+        c.move(f"{f} {f} {f} {f}")
+        assert c.is_solved(), f"自检失败: {f}^4 应复原"
+        c = RubiksCube()
+        c.move(f"{f} {f}'")
+        assert c.is_solved(), f"自检失败: {f} 后 {f}' 应复原"
+
     cube = RubiksCube()
     print("初始状态:")
     print(cube)
