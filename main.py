@@ -23,6 +23,10 @@ class MoveRequest(BaseModel):
     move: str
 
 
+class ScrambleRequest(BaseModel):
+    steps: int = 20
+
+
 @app.get("/state")
 def get_state() -> dict:
     return cube.state
@@ -45,6 +49,15 @@ def reset() -> dict:
     global cube
     cube = RubiksCube()
     return cube.state
+
+
+@app.post("/scramble")
+def do_scramble(req: ScrambleRequest) -> dict:
+    steps = int(req.steps)
+    if steps <= 0 or steps > 200:
+        raise HTTPException(status_code=400, detail="steps 必须在 1..200")
+    seq = cube.scramble(steps)
+    return {"scramble": seq, "state": cube.state}
 
 
 if __name__ == "__main__":
